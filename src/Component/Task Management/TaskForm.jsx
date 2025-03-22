@@ -2,28 +2,38 @@ import { useState, useEffect } from "react";
 import api from "../../api";
 import PropTypes from "prop-types";
 import {
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Box,
   Button,
-  Alert,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  FormControl,
   Grid,
-  CircularProgress
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+  useTheme,
+  alpha,
+  Alert,
+  Stack,
+  LinearProgress
 } from "@mui/material";
 import {
-  PriorityHigh,
+  Flag,
   AccessTime,
   Group,
-  Person
+  Person,
+  Description,
+  PriorityHigh,
+  Assignment
 } from "@mui/icons-material";
 
 const TaskForm = ({ setTasks, existingTask, onClose }) => {
+  const theme = useTheme();
+  
   const [taskData, setTaskData] = useState(
     existingTask || {
       title: "",
@@ -52,7 +62,9 @@ const TaskForm = ({ setTasks, existingTask, onClose }) => {
         setUsers(usersRes.data);
         setTeams(teamsRes.data);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load users and teams.");
+        setError(
+          err.response?.data?.message || "Failed to load users and teams."
+        );
       }
     };
     fetchUsersAndTeams();
@@ -104,7 +116,9 @@ const TaskForm = ({ setTasks, existingTask, onClose }) => {
         setError("Unexpected response from server.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "An error occur while saving the task");
+      setError(
+        err.response?.data?.message || "An error occurred while saving the task"
+      );
     } finally {
       setLoading(false);
     }
@@ -113,40 +127,112 @@ const TaskForm = ({ setTasks, existingTask, onClose }) => {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "HIGH":
-        return "#f44336";
+        return theme.palette.error.main;
       case "MEDIUM":
-        return "#ffa726";
+        return theme.palette.warning.main;
       case "LOW":
-        return "#4caf50";
+        return theme.palette.success.main;
       default:
-        return "#757575";
+        return theme.palette.text.secondary;
     }
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending":
+        return theme.palette.info.main;
+      case "in_progress":
+        return theme.palette.warning.main;
+      case "completed":
+        return theme.palette.success.main;
+      case "blocked":
+        return theme.palette.error.main;
+      default:
+        return theme.palette.text.secondary;
+    }
+  };
+
+  const priorityOptions = [
+    { value: "HIGH", label: "High Priority" },
+    { value: "MEDIUM", label: "Medium Priority" },
+    { value: "LOW", label: "Low Priority" },
+  ];
+
+  const statusOptions = [
+    { value: "pending", label: "Pending" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "completed", label: "Completed" },
+    { value: "blocked", label: "Blocked" },
+  ];
+
   return (
-    <Card sx={{ maxWidth: 800, mx: "auto", mt: 3 }}>
-      <CardContent>
-        <Typography variant="h5" component="h2" align="center" gutterBottom>
-          {existingTask ? "Edit Task" : "Create New Task"}
-        </Typography>
+    <Card
+      elevation={3}
+      sx={{
+        maxWidth: 800,
+        mx: "auto",
+        borderRadius: 2,
+        overflow: "visible",
+        position: "relative",
+      }}
+    >
+      {loading && (
+        <LinearProgress
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 4,
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+          }}
+        />
+      )}
+
+      <CardContent sx={{ p: 4 }}>
+        <Box 
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            mb: 4,
+            gap: 1
+          }}
+        >
+          <Assignment fontSize="large" color="primary" />
+          <Typography variant="h5" component="h2" fontWeight="bold">
+            {existingTask ? "Edit Task" : "Create New Task"}
+          </Typography>
+        </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 3,
+              borderRadius: 1,
+              alignItems: "center"
+            }}
+          >
             {error}
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+        <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Title"
+                label="Task Title"
                 name="title"
                 value={taskData.title}
                 onChange={handleChange}
                 required
                 variant="outlined"
+                placeholder="What needs to be done?"
+                InputProps={{
+                  sx: { borderRadius: 1.5 }
+                }}
               />
             </Grid>
 
@@ -160,65 +246,129 @@ const TaskForm = ({ setTasks, existingTask, onClose }) => {
                 multiline
                 rows={4}
                 variant="outlined"
+                placeholder="Add details about this task..."
+                InputProps={{
+                  startAdornment: (
+                    <Description 
+                      sx={{ 
+                        color: "text.secondary", 
+                        mr: 1, 
+                        mt: 1.5 
+                      }} 
+                    />
+                  ),
+                  sx: { borderRadius: 1.5 }
+                }}
               />
             </Grid>
 
+            <Grid item xs={12}>
+              <Divider sx={{ my: 1 }}>
+                <Chip label="Task Details" />
+              </Divider>
+            </Grid>
+
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth variant="outlined">
                 <InputLabel>Priority</InputLabel>
                 <Select
                   name="priority"
                   value={taskData.priority}
                   onChange={handleChange}
                   label="Priority"
-                  startAdornment={<PriorityHigh sx={{ color: getPriorityColor(taskData.priority), mr: 1 }} />}
+                  sx={{ 
+                    borderRadius: 1.5,
+                    "& .MuiSelect-select": {
+                      display: "flex",
+                      alignItems: "center",
+                    }
+                  }}
                 >
-                  <MenuItem value="HIGH">High Priority</MenuItem>
-                  <MenuItem value="MEDIUM">Medium Priority</MenuItem>
-                  <MenuItem value="LOW">Low Priority</MenuItem>
+                  {priorityOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Flag sx={{ color: getPriorityColor(option.value) }} />
+                        {option.label}
+                      </Box>
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth variant="outlined">
                 <InputLabel>Status</InputLabel>
                 <Select
                   name="status"
                   value={taskData.status}
                   onChange={handleChange}
                   label="Status"
+                  sx={{ 
+                    borderRadius: 1.5,
+                    "& .MuiSelect-select": {
+                      display: "flex",
+                      alignItems: "center",
+                    }
+                  }}
                 >
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                  <MenuItem value="blocked">Blocked</MenuItem>
+                  {statusOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Chip 
+                        size="small"
+                        label={option.label}
+                        sx={{ 
+                          bgcolor: alpha(getStatusColor(option.value), 0.1),
+                          color: getStatusColor(option.value),
+                          borderRadius: 1
+                        }}
+                      />
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid item xs={12}>
-              <FormControl fullWidth>
+              <Divider sx={{ my: 1 }}>
+                <Chip label="Assignment" />
+              </Divider>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth variant="outlined">
                 <InputLabel>Assignment Type</InputLabel>
                 <Select
                   name="assigned_type"
                   value={taskData.assigned_type}
                   onChange={handleChange}
                   label="Assignment Type"
-                  startAdornment={
-                    taskData.assigned_type === "USER" ? 
-                    <Person sx={{ mr: 1 }} /> : 
-                    <Group sx={{ mr: 1 }} />
-                  }
+                  sx={{ 
+                    borderRadius: 1.5,
+                    "& .MuiSelect-select": {
+                      display: "flex",
+                      alignItems: "center",
+                    }
+                  }}
                 >
-                  <MenuItem value="USER">Assign to User</MenuItem>
-                  <MenuItem value="TEAM">Assign to Team</MenuItem>
+                  <MenuItem value="USER">
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Person />
+                      Assign to User
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="TEAM">
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Group />
+                      Assign to Team
+                    </Box>
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
-            <Grid item xs={12}>
-              <FormControl fullWidth>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth variant="outlined">
                 <InputLabel>
                   {`Select ${taskData.assigned_type === "USER" ? "User" : "Team"}`}
                 </InputLabel>
@@ -238,9 +388,10 @@ const TaskForm = ({ setTasks, existingTask, onClose }) => {
                   label={`Select ${
                     taskData.assigned_type === "USER" ? "User" : "Team"
                   }`}
+                  sx={{ borderRadius: 1.5 }}
                 >
                   <MenuItem value="">
-                    Select {taskData.assigned_type === "USER" ? "User" : "Team"}
+                    <em>Select {taskData.assigned_type === "USER" ? "User" : "Team"}</em>
                   </MenuItem>
                   {(taskData.assigned_type === "USER" ? users : teams).map(
                     (option) => (
@@ -265,32 +416,55 @@ const TaskForm = ({ setTasks, existingTask, onClose }) => {
                 onChange={handleChange}
                 InputLabelProps={{ shrink: true }}
                 InputProps={{
-                  startAdornment: <AccessTime sx={{ mr: 1 }} />,
+                  startAdornment: (
+                    <AccessTime sx={{ color: "text.secondary", mr: 1 }} />
+                  ),
+                  sx: { borderRadius: 1.5 }
                 }}
               />
             </Grid>
 
             <Grid item xs={12}>
-              <Button
-                type="submit"
-                variant="contained"
-                fullWidth
-                disabled={loading}
-                sx={{
-                  bgcolor: "#4CAF50",
-                  "&:hover": { bgcolor: "#45a049" },
-                  py: 1.5,
-                }}
+              <Stack 
+                direction="row" 
+                spacing={2} 
+                sx={{ mt: 2 }}
               >
-                {loading ? (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <CircularProgress size={20} color="inherit" />
-                    {existingTask ? "Updating..." : "Creating..."}
-                  </Box>
-                ) : (
-                  existingTask ? "Update Task" : "Create Task"
-                )}
-              </Button>
+                <Button
+                  variant="outlined"
+                  onClick={onClose}
+                  fullWidth
+                  sx={{
+                    borderRadius: 1.5,
+                    py: 1.5,
+                    color: theme.palette.text.secondary,
+                    borderColor: theme.palette.divider,
+                    "&:hover": {
+                      borderColor: theme.palette.text.secondary,
+                      bgcolor: alpha(theme.palette.text.secondary, 0.05)
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  disabled={loading}
+                  sx={{
+                    borderRadius: 1.5,
+                    py: 1.5,
+                    boxShadow: 2,
+                    bgcolor: theme.palette.primary.main,
+                    "&:hover": {
+                      bgcolor: theme.palette.primary.dark,
+                    },
+                  }}
+                >
+                  {existingTask ? "Update Task" : "Create Task"}
+                </Button>
+              </Stack>
             </Grid>
           </Grid>
         </Box>
